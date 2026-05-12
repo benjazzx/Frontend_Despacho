@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import Swal from "sweetalert2";
 import axios from "axios";
+import { VENTAS_API, DESPACHOS_API } from "../../config/api";
 
 export const FormDespacho = ({ venta, onClose }) => {
   const { register, handleSubmit } = useForm();
@@ -25,7 +26,7 @@ export const FormDespacho = ({ venta, onClose }) => {
 
     try {
       await axios.put(
-        `http://192.168.30/api/v1/ventas/${venta.idVenta}`,
+        `${VENTAS_API}/api/v1/ventas/${venta.idVenta}`,
         jsonDataSales,
         {
           headers:{
@@ -34,7 +35,7 @@ export const FormDespacho = ({ venta, onClose }) => {
       }
         }
       );
-      await axios.post("http://192.168.320/api/v1/despachos", jsonData, {
+      await axios.post(`${DESPACHOS_API}/api/v1/despachos`, jsonData, {
         headers:{
           'Content-Type': 'application/json',
           'Accept': 'application/json'

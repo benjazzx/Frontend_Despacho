@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { Modal } from "./Modal";
 import { FormCierreDespacho } from "./FormCierreDespacho";
+import { DESPACHOS_API } from "../../config/api";
 
 export const TableDespachos = () => {
   const [despachos, setDespachos] = useState([]);
 
   const despacho = async () => {
     await axios
-      .get("http://192.168.3.20/api/v1/despachos", {
+      .get(`${DESPACHOS_API}/api/v1/despachos`, {
         headers:{
               'Content-Type': 'application/json',
               'Accept': 'application/json'
