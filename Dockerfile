@@ -4,10 +4,6 @@ WORKDIR /app
 COPY package*.json .
 RUN npm ci
 COPY . .
-ARG VITE_VENTAS_URL=http://localhost:8080
-ARG VITE_DESPACHOS_URL=http://localhost:8081
-ENV VITE_VENTAS_URL=$VITE_VENTAS_URL
-ENV VITE_DESPACHOS_URL=$VITE_DESPACHOS_URL
 RUN npm run build
 
 # Stage 2: Runtime

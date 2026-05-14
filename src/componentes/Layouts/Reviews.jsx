@@ -1,33 +1,24 @@
 function Reviews() {
+  const companies = [
+    { name: "Apple", bg: "bg-gray-900", text: "text-white", sub: "Technology" },
+    { name: "HyperX", bg: "bg-red-600", text: "text-white", sub: "Gaming" },
+    { name: "Logitech", bg: "bg-blue-600", text: "text-white", sub: "Peripherals" },
+  ];
+
   return (
-    <div className="bg-white  sm:py-10">
-      <div className="mx-auto text-center ">
-        <h2 className="text-center text-lg font-semibold leading-8 text-gray-900">
+    <div className="bg-white sm:py-10 py-6">
+      <div className="mx-auto text-center px-6">
+        <h2 className="text-center text-lg font-semibold leading-8 text-gray-900 mb-2">
           Empresas que confían en nosotros
         </h2>
-        <div className="mx-auto mt-10 grid max-w-lg grid-cols-4 items-center gap-x-8 gap-y-10 sm:max-w-xl sm:grid-cols-6 sm:gap-x-10 lg:mx-0 lg:max-w-none lg:grid-cols-3">
-          <img
-            className="col-span-2 max-h-12 w-full object-contain lg:col-span-1 mx-auto"
-            src="https://seeklogo.com/images/A/apple-logo-E3DBF3AE34-seeklogo.com.png"
-            alt="Transistor"
-            width="158"
-            height="48"
-          />
-
-          <img
-            className="col-span-2 max-h-12 w-full object-contain lg:col-span-1 mx-auto"
-            src="https://seeklogo.com/images/H/hyper-x-logo-C4B6774A38-seeklogo.com.png"
-            alt="Tuple"
-            width="158"
-            height="48"
-          />
-          <img
-            className="col-span-2 max-h-12 w-full object-contain sm:col-start-2 lg:col-span-1 mx-auto"
-            src="https://seeklogo.com/images/L/logitech-gaming-logo-B76FC713B0-seeklogo.com.png"
-            alt="SavvyCal"
-            width="158"
-            height="48"
-          />
+        <p className="text-sm text-gray-500 mb-8">Líderes del mercado tecnológico</p>
+        <div className="flex justify-center gap-8 flex-wrap">
+          {companies.map((c) => (
+            <div key={c.name} className={`${c.bg} ${c.text} rounded-xl px-10 py-4 shadow-md flex flex-col items-center min-w-[130px]`}>
+              <span className="font-bold text-xl tracking-wide">{c.name}</span>
+              <span className="text-xs opacity-75 mt-1">{c.sub}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
