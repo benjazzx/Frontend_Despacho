@@ -24,3 +24,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+### Kubernetes secrets ###
+k8s/secret.yaml
