@@ -33,8 +33,9 @@ jobs:
         run: |
           docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }} \
                        -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest \
-                       --build-arg VITE_VENTAS_URL=http://innovatech-alb-516038279.us-east-1.elb.amazonaws.com/api/v1/ventas \
-                       --build-arg VITE_DESPACHOS_URL=http://innovatech-alb-516038279.us-east-1.elb.amazonaws.com/api/v1/despachos \
+                       --build-arg VITE_API_URL=https://innovatech-alb-516038279.us-east-1.elb.amazonaws.com/api/v1 \
+                       --build-arg VITE_ENVIRONMENT=production \
+                       --build-arg VITE_LOG_LEVEL=info \
                        .
 
       - name: Push imagen a ECR

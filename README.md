@@ -236,12 +236,39 @@ El volumen `nginx_logs` persiste los archivos `access.log` y `error.log` de ngin
 
 ## Variables de entorno
 
-| Variable | Descripción | Producción |
-|---|---|---|
-| `VITE_VENTAS_URL` | URL base del microservicio de ventas | No usada (nginx hace proxy) |
-| `VITE_DESPACHOS_URL` | URL base del microservicio de despachos | No usada (nginx hace proxy) |
+### Configuración local
 
-> En producción las variables `VITE_*` se pasan por consistencia y para desarrollo local, pero la comunicación real con el backend la maneja nginx internamente.
+1. Copiar `.env.example` a `.env`:
+```bash
+cp .env.example .env
+```
+
+2. Editar `.env` con la URL correcta:
+```
+VITE_API_URL=https://innovatech-alb-516038279.us-east-1.elb.amazonaws.com/api/v1
+```
+
+3. **Nunca commitear `.env`** — está en `.gitignore`. Solo `.env.example` va a git.
+
+### Variables disponibles
+
+| Variable | Descripción | Ejemplo producción | Ejemplo local |
+|---|---|---|---|
+| `VITE_API_URL` | URL base del API incluyendo `/api/v1` | `https://innovatech-alb-516038279.us-east-1.elb.amazonaws.com/api/v1` | `http://localhost:8080/api/v1` |
+| `VITE_ENVIRONMENT` | Ambiente de ejecución | `production` | `development` |
+| `VITE_LOG_LEVEL` | Nivel de log en consola | `info` | `debug` |
+| `VITE_TIMEOUT` | Timeout de requests en ms | `10000` | `10000` |
+| `VITE_RETRY_ATTEMPTS` | Reintentos en caso de error | `3` | `3` |
+
+### Cómo funciona en CI/CD
+
+Vite embebe las variables `VITE_*` en el bundle en **tiempo de compilación**. En producción se pasan como `--build-arg` al `docker build`:
+
+```yaml
+--build-arg VITE_API_URL=https://innovatech-alb-516038279.us-east-1.elb.amazonaws.com/api/v1
+```
+
+Están declaradas en el `Dockerfile` con `ARG` + `ENV` para que `npm run build` las reciba.
 
 ---
 

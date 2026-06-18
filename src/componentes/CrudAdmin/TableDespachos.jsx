@@ -1,24 +1,15 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { Modal } from "./Modal";
 import { FormCierreDespacho } from "./FormCierreDespacho";
-import { DESPACHOS_API } from "../../config/api";
+import { apiDespachos } from "../../api/client";
 
 export const TableDespachos = () => {
   const [despachos, setDespachos] = useState([]);
 
   const despacho = async () => {
-    await axios
-      .get(`${DESPACHOS_API}/api/v1/despachos`, {
-        headers:{
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-        }
-      })
-      .then((response) => {
-        console.log(response.data);
-        setDespachos(response.data);
-      });
+    const response = await apiDespachos.getAll();
+    console.log(response.data);
+    setDespachos(response.data);
   };
   // Llamada a la función para obtener los datos cuando el componente se monta
   useEffect(() => {
