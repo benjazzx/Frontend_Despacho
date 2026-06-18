@@ -404,3 +404,109 @@ front_despacho/
 | Amazon ECS Fargate | — | Ejecución en la nube |
 | Amazon ECR | — | Registro de imágenes |
 | ALB | — | Balanceo, SSL termination y routing |
+
+---
+
+## Incidentes resueltos en producción
+
+Esta sección documenta los problemas reales que se presentaron durante el despliegue y cómo se diagnosticaron y resolvieron. Son parte del trabajo técnico del proyecto.
+
+---
+
+### Incidente 1 — Mixed Content Error (HTTPS bloqueando peticiones HTTP)
+
+**Síntoma:**
+
+El browser mostraba el error `ERR_NETWORK` o `Mixed Content` en la consola. Las peticiones al backend fallaban con `net::ERR_BLOCKED_BY_RESPONSE`. La aplicación no cargaba datos.
+
+**Causa raíz:**
+
+El `Dockerfile` configuraba `ENV VITE_API_URL=http://...` (HTTP). Sin embargo, Vite **no lee `process.env`** — solo lee archivos `.env*` en tiempo de build. Como resultado, `import.meta.env.VITE_API_URL` era `undefined` en el bundle compilado. El `config.js` lanzaba una excepción al detectar que `VITE_API_URL` no estaba definida, lo que impedía que `client.js` se inicializara. ECS detectaba el contenedor como roto y hacía rollback a la imagen anterior, que tenía hardcodeado `http://localhost:8080` — una URL HTTP en una página servida sobre HTTPS. Los browsers modernos bloquean peticiones a HTTP desde páginas HTTPS (Mixed Content Policy).
+
+**Solución:**
+
+Se creó el archivo `.env.production` con la URL HTTPS del ALB:
+
+```
+VITE_API_URL=https://innovatech-alb-516038279.us-east-1.elb.amazonaws.com/api/v1
+```
+
+Vite lee automáticamente `.env.production` durante `npm run build`. El bundle resultante tiene la URL correcta embebida. El hash del bundle cambió (`index-Cr0KkPlN.js` → `index-C0HeXv09.js`), confirmando que la nueva imagen fue compilada y desplegada correctamente.
+
+**Lección aprendida:**
+
+Variables de entorno en Vite solo funcionan vía archivos `.env*`. `ENV` en Dockerfile afecta a Node.js en el servidor, no al bundle del browser.
+
+---
+
+### Incidente 2 — Timeout de 10 segundos en todas las peticiones al backend
+
+**Síntoma:**
+
+Después de corregir el Mixed Content, las peticiones al backend devolvían `timeout of 10000ms exceeded` y `ECONNABORTED` en consola. La aplicación mostraba los componentes pero sin datos.
+
+**Causa raíz:**
+
+Las reglas del ALB estaban configuradas con los paths incorrectos:
+
+```
+Regla incorrecta: /api/ventas*    → back-ventas-svc
+Regla incorrecta: /api/despachos* → back-despachos-svc
+```
+
+Pero los controllers de Spring Boot exponen:
+
+```java
+@RequestMapping("api/v1/ventas")    // path correcto: /api/v1/ventas
+@RequestMapping("api/v1/despachos") // path correcto: /api/v1/despachos
+```
+
+Las peticiones a `/api/v1/ventas` no coincidían con `/api/ventas*`, caían a la regla `default` del ALB, que enrutaba al `frontend-svc`. nginx del frontend intentaba hacer proxy a una IP de EC2 antigua (`10.0.9.120:8080`) que no existía en la VPC de ECS. Después de 10 segundos, axios devolvía timeout.
+
+**Solución:**
+
+Se actualizaron las reglas del ALB via AWS CLI:
+
+```bash
+# Regla de ventas: /api/ventas* → /api/v1/ventas*
+aws elbv2 modify-rule \
+  --rule-arn arn:aws:elasticloadbalancing:...:rule/492229a1e1291e1f \
+  --conditions '[{"Field":"path-pattern","Values":["/api/v1/ventas*"]}]'
+
+# Regla de despachos: /api/despachos* → /api/v1/despachos*
+aws elbv2 modify-rule \
+  --rule-arn arn:aws:elasticloadbalancing:...:rule/b85d9b7cb9e005ed \
+  --conditions '[{"Field":"path-pattern","Values":["/api/v1/despachos*"]}]'
+```
+
+El cambio fue inmediato (sin redeploy). Las peticiones comenzaron a enrutarse correctamente.
+
+**Lección aprendida:**
+
+Los paths del ALB deben coincidir exactamente con el `@RequestMapping` del controller Spring Boot, incluyendo el segmento `/v1/`. Una discrepancia de un segmento en el path hace que las peticiones caigan al servicio incorrecto.
+
+---
+
+### Incidente 3 — Métricas ECS sin datos en CloudWatch Dashboard
+
+**Síntoma:**
+
+El dashboard de CloudWatch mostraba "No hay datos disponibles" para CPU y memoria de los servicios ECS.
+
+**Causa raíz:**
+
+El cluster ECS tenía `containerInsights: disabled` (configuración por defecto de AWS). Sin Container Insights activo, ECS no envía métricas detalladas de CPU/memoria por servicio o tarea a CloudWatch.
+
+**Solución:**
+
+```bash
+aws ecs update-cluster-settings \
+  --cluster innovatech-ecs-cluster \
+  --settings name=containerInsights,value=enabled
+```
+
+Las métricas comenzaron a aparecer en CloudWatch → Container Insights aproximadamente 5 minutos después.
+
+**Lección aprendida:**
+
+Container Insights no está habilitado por defecto en clusters ECS. Debe activarse explícitamente. Las métricas de CPU/memoria del ALB requieren tráfico real para aparecer (no se generan en idle).
